@@ -30,9 +30,7 @@ pub async fn video_extraction(
     let (video_info, comments) = extractor.extract(&video_id).await
         .map_err(|e| AppError::InvalidInput(format!("Failed to extract video: {}", e)))?;
 
-    // Check if video already exists
     if let Some(_existing_video) = VideoInfoRepository::get_by_yt_id(&app_state.db_pool, &video_info.yt_id).await? {
-        // Update stats if video exists
         let updated_video = VideoInfoRepository::update_stats(
             &app_state.db_pool,
             &video_info.yt_id,
@@ -41,15 +39,13 @@ pub async fn video_extraction(
             video_info.like_count
         ).await?;
         
-        // Delete existing comments for this video and add new ones
         CommentRepository::delete_by_video_id(&app_state.db_pool, &video_info.yt_id).await?;
         
-        // Save new comments
         let comment_dtos: Vec<CreateCommentDto> = comments.into_iter().map(|comment| {
             CreateCommentDto {
                 comment_id: comment.comment_id,
                 channel_id: comment.channel_id,
-                video_id: video_info.yt_id.clone(), // Use video's yt_id for foreign key
+                video_id: video_info.yt_id.clone(),
                 display_name: comment.display_name,
                 user_verified: comment.user_verified,
                 thumbnail: comment.thumbnail,
@@ -75,7 +71,6 @@ pub async fn video_extraction(
         return Ok(Json(response));
     }
 
-    // Create new video info and comments in a transaction
     let video_dto = CreateVideoInfoDto {
         title: video_info.title.clone(),
         channel: video_info.channel.clone(),
@@ -90,12 +85,11 @@ pub async fn video_extraction(
         channel_thumbnail: video_info.channel_thumbnail.clone(),
     };
 
-    // Create comments DTOs
     let comment_dtos: Vec<CreateCommentDto> = comments.into_iter().map(|comment| {
         CreateCommentDto {
             comment_id: comment.comment_id,
             channel_id: comment.channel_id,
-            video_id: video_info.yt_id.clone(), // Use video's yt_id for foreign key
+            video_id: video_info.yt_id.clone(),
             display_name: comment.display_name,
             user_verified: comment.user_verified,
             thumbnail: comment.thumbnail,
@@ -109,10 +103,8 @@ pub async fn video_extraction(
         }
     }).collect();
 
-    // Save video first
     let saved_video = VideoInfoRepository::create(&app_state.db_pool, video_dto).await?;
     
-    // Then save comments
     let saved_comments = CommentRepository::create_batch(&app_state.db_pool, comment_dtos).await?;
 
     println!("Saved video: {}", saved_video.title);
@@ -128,7 +120,6 @@ pub async fn video_extraction(
     Ok(Json(response))
 }
 
-// Get all saved videos
 pub async fn get_videos(State(app_state): State<AppState>) -> Result<Json<Value>, AppError> {
     let videos = VideoInfoRepository::get_all(&app_state.db_pool).await?;
     
@@ -140,7 +131,6 @@ pub async fn get_videos(State(app_state): State<AppState>) -> Result<Json<Value>
     Ok(Json(response))
 }
 
-// Get a specific video by yt_id
 pub async fn get_video_by_id(
     State(app_state): State<AppState>,
     Path(yt_id): Path<String>
@@ -163,7 +153,6 @@ pub async fn get_video_by_id(
     }
 }
 
-// Get comments for a specific video
 pub async fn get_comments_by_video_id(
     State(app_state): State<AppState>,
     Path(yt_id): Path<String>

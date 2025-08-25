@@ -12,7 +12,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "macros", "migrate", "chrono", "uuid"] }
 tokio = { version = "1.47.1", features = ["full"] }
-tower-http = { version = "0.6.6", features = ["trace", "metrics"] }
+tower-http = { version = "0.6.6", features = ["trace", "metrics", "cors"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 yt-scraper = { git = "https://github.com/ryanweiler92/rust_yt_scraper" }

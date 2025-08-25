@@ -1,4 +1,5 @@
 use axum::{routing::{get, post}, Router};
+use tower_http::cors::CorsLayer;
 
 mod routes;
 mod db;
@@ -23,6 +24,7 @@ async fn main() {
         .route("/videos/{yt_id}", get(routes::video::get_video_by_id))
         .route("/videos/{yt_id}/comments", get(routes::video::get_comments_by_video_id))
         .route("/reset-database", post(routes::database::reset_database))
+        .layer(CorsLayer::permissive())
         .with_state(app_state);
     
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
