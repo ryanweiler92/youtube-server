@@ -125,13 +125,13 @@ impl VideoInfoRepository {
                 r#"
                 INSERT INTO comments 
                 (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content, 
-                 published_time, like_count, reply_count, comment_level, reply_to, reply_order)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                 published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 RETURNING *
                 "#,
                 comment_dto.comment_id,
                 comment_dto.channel_id,
-                video.yt_id, // Use the video's yt_id to ensure consistency
+                video.yt_id,
                 comment_dto.display_name,
                 Some(comment_dto.user_verified),
                 Some(comment_dto.thumbnail),
@@ -141,7 +141,8 @@ impl VideoInfoRepository {
                 Some(comment_dto.reply_count),
                 Some(comment_dto.comment_level),
                 Some(comment_dto.reply_to),
-                Some(comment_dto.reply_order)
+                Some(comment_dto.reply_order),
+                Some(comment_dto.annotations),
             )
             .fetch_one(&mut *tx)
             .await
@@ -165,8 +166,8 @@ impl CommentRepository {
             r#"
             INSERT INTO comments 
             (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content, 
-             published_time, like_count, reply_count, comment_level, reply_to, reply_order)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+             published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *
             "#,
             comment_dto.comment_id,
@@ -181,7 +182,8 @@ impl CommentRepository {
             Some(comment_dto.reply_count),
             Some(comment_dto.comment_level),
             Some(comment_dto.reply_to),
-            Some(comment_dto.reply_order)
+            Some(comment_dto.reply_order),
+            Some(comment_dto.annotations)
         )
         .fetch_one(pool)
         .await
@@ -205,28 +207,35 @@ impl CommentRepository {
         let comments = sqlx::query_as!(
             Comment,
             r#"
-            SELECT * FROM comments 
-            WHERE video_id = $1 
+            SELECT comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
+                   published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations, created_at, updated_at, id
+            FROM comments
+            WHERE video_id = $1
             ORDER BY comment_level ASC, reply_order ASC, published_time ASC
             "#,
             video_id
         )
-        .fetch_all(pool)
-        .await
-        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+            .fetch_all(pool)
+            .await
+            .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(comments)
     }
 
     pub async fn get_by_comment_id(pool: &PgPool, comment_id: &str) -> Result<Option<Comment>, AppError> {
         let comment = sqlx::query_as!(
-            Comment,
-            "SELECT * FROM comments WHERE comment_id = $1",
-            comment_id
-        )
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+        Comment,
+        r#"
+        SELECT comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
+               published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations, created_at, updated_at, id
+        FROM comments
+        WHERE comment_id = $1
+        "#,
+        comment_id
+    )
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(comment)
     }

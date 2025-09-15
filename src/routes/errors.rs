@@ -9,6 +9,7 @@ pub enum AppError {
     InvalidInput(String),
     FailedDBConnection(String),
     DatabaseError(String),
+    AIServerError(String),
 }
 
 impl fmt::Display for AppError {
@@ -17,6 +18,7 @@ impl fmt::Display for AppError {
             AppError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
             AppError::FailedDBConnection(msg) => write!(f, "Failed to connect to DB: {}", msg),
             AppError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
+            AppError::AIServerError(msg) => write!(f, "AI Server  error: {}", msg),
         }
     }
 }
@@ -27,6 +29,7 @@ impl IntoResponse for AppError {
             AppError::InvalidInput(msg) => (StatusCode::BAD_REQUEST, msg),
             AppError::FailedDBConnection(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::DatabaseError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::AIServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 
         (status, error_message).into_response()

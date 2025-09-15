@@ -36,6 +36,7 @@ pub struct Comment {
     pub comment_level: Option<i32>,
     pub reply_to: Option<String>,
     pub reply_order: Option<i32>,
+    pub annotations: Option<serde_json::Value>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -71,4 +72,5 @@ pub struct CreateCommentDto {
     pub comment_level: i32,
     pub reply_to: String,
     pub reply_order: i32,
+    pub annotations: serde_json::Value
 }

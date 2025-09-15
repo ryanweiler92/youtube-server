@@ -56,6 +56,7 @@ pub async fn video_extraction(
                 comment_level: comment.comment_level,
                 reply_to: comment.reply_to,
                 reply_order: comment.reply_order,
+                annotations: serde_json::json!({}),
             }
         }).collect();
 
@@ -100,6 +101,7 @@ pub async fn video_extraction(
             comment_level: comment.comment_level,
             reply_to: comment.reply_to,
             reply_order: comment.reply_order,
+            annotations: serde_json::json!({}),
         }
     }).collect();
 

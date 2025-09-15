@@ -3138,6 +3138,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "prometheus",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",
@@ -3152,7 +3153,7 @@ dependencies = [
 [[package]]
 name = "yt-scraper"
 version = "0.1.1"
-source = "git+https://github.com/ryanweiler92/rust_yt_scraper#bd9d6ac44a9a21492f3aab490185d9666473276b"
+source = "git+https://github.com/ryanweiler92/rust_yt_scraper#28c67b7059a18e5e98a53b26e4df482778affa27"
 dependencies = [
  "async-std",
  "base64",

@@ -3,6 +3,7 @@ use tower_http::cors::CorsLayer;
 
 mod routes;
 mod db;
+mod ai;
 
 use crate::db::connection::{get_connection, AppState};
 
@@ -24,6 +25,7 @@ async fn main() {
         .route("/videos/{yt_id}", get(routes::video::get_video_by_id))
         .route("/videos/{yt_id}/comments", get(routes::video::get_comments_by_video_id))
         .route("/reset-database", post(routes::database::reset_database))
+        .route("/ner", post(routes::ner_route::ner_operation))
         .layer(CorsLayer::permissive())
         .with_state(app_state);
     
