@@ -74,3 +74,8 @@ pub struct CreateCommentDto {
     pub reply_order: i32,
     pub annotations: serde_json::Value
 }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CommentContentAndId {
+    pub id: String,
+    pub comment: String
+}

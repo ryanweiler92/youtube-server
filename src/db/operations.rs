@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use crate::db::models::{VideoInfo, Comment, CreateVideoInfoDto, CreateCommentDto};
+use crate::db::models::{VideoInfo, Comment, CreateVideoInfoDto, CreateCommentDto, CommentContentAndId};
 use crate::routes::errors::AppError;
 
 pub struct VideoInfoRepository;
@@ -250,5 +250,18 @@ impl CommentRepository {
         .map_err(|e| AppError::DatabaseError(e.to_string()))?;
 
         Ok(result.rows_affected())
+    }
+
+    pub fn get_comment_content_and_ids(comments: Vec<Comment>) -> Vec<CommentContentAndId> {
+        let mut comments_with_ids: Vec<CommentContentAndId> = Vec::new();
+
+        for comment in comments {
+            comments_with_ids.push(
+                CommentContentAndId{
+                        id: comment.comment_id,
+                        comment: comment.content
+                    })
+            }
+        comments_with_ids
     }
 }

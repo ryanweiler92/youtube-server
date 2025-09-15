@@ -1,15 +1,18 @@
 use axum::{Json, extract::{State, Path}};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use ner_models::NERRequestResult;
 use crate::db::{
     connection::AppState,
-    models::{CreateVideoInfoDto, CreateCommentDto},
+    models::{CreateVideoInfoDto, CreateCommentDto, CommentContentAndId},
     operations::{VideoInfoRepository, CommentRepository}
 };
 use crate::routes::errors::AppError;
 
 use reqwest;
 use std::collections::HashMap;
+use crate::ai::ner_models;
+use crate::ai::ner_models::NERResult;
 
 #[derive(Debug, Serialize, Deserialize)]
 
@@ -19,7 +22,7 @@ pub struct NERRequest {
     threshold: f32
 }
 
-pub async fn ner_request(ner_request: NERRequest, State(app_state): State<AppState>) -> Result<Json<Value>, AppError> {
+pub async fn ner_request(ner_request: NERRequest, State(app_state): State<AppState>) -> Result<NERRequestResult, AppError> {
     let video_request_id = ner_request.video_id.as_str();
     let comments = CommentRepository::get_by_video_id(&app_state.db_pool, video_request_id).await?;
 
@@ -29,8 +32,10 @@ pub async fn ner_request(ner_request: NERRequest, State(app_state): State<AppSta
         .map(|comment| comment.content.clone())
         .collect();
 
+    let content_and_ids = CommentRepository::get_comment_content_and_ids(comments);
+
     let payload = json!({
-        "text": comment_contents,
+        "comments": content_and_ids,
         "labels": ner_request.labels,
         "threshold": ner_request.threshold
     });
@@ -42,12 +47,13 @@ pub async fn ner_request(ner_request: NERRequest, State(app_state): State<AppSta
         .send()
         .await.map_err(|e| AppError::AIServerError(e.to_string()))?;
 
-    let result = response
-        .json::<Value>()
+    let ner_result: NERRequestResult = response
+        .json::<NERRequestResult>()
         .await
         .map_err(|e| AppError::AIServerError(e.to_string()))?;
 
-    Ok(Json(result))
+
+    Ok(ner_result)
 
 
 
