@@ -1,2 +1,2 @@
 pub mod ner;
-pub mod ner_models;
+pub use ner::AnnotationObject;

@@ -18,3 +18,4 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 yt-scraper = { git = "https://github.com/ryanweiler92/rust_yt_scraper" }
 wasm-bindgen = "0.2.100"
 reqwest = "0.12.23"
+http = "1.3.1"

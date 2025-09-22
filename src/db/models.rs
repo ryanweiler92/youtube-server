@@ -2,6 +2,8 @@ use serde::{Serialize, Deserialize};
 use sqlx::FromRow;
 use chrono::{DateTime, Utc};
 
+use crate::ai::ner::Annotations;
+
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct VideoInfo {
     pub id: Option<i32>,

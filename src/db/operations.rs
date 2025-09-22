@@ -1,6 +1,8 @@
 use sqlx::PgPool;
 use crate::db::models::{VideoInfo, Comment, CreateVideoInfoDto, CreateCommentDto, CommentContentAndId};
 use crate::routes::errors::AppError;
+use crate::ai::ner::AnnotationObject;
+use serde_json::json;
 
 pub struct VideoInfoRepository;
 
@@ -160,6 +162,35 @@ impl VideoInfoRepository {
 pub struct CommentRepository;
 
 impl CommentRepository {
+
+    pub async fn update_annotations(pool: &PgPool, annotations: Vec<AnnotationObject>) -> Result<Vec<Comment>, AppError> {
+        let mut updated_comments: Vec<Comment> = Vec::new();
+
+        for annotation in annotations {
+            let json_annotations: serde_json::Value = json!(annotation.annotations);
+
+            let comment = sqlx::query_as!(
+                Comment,
+                r#"
+                UPDATE comments
+                SET annotations = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE comment_id = $2
+                RETURNING
+                    comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
+                    published_time, like_count, reply_count, comment_level, reply_to, reply_order,
+                    annotations, created_at, updated_at, id
+                "#,
+                json_annotations,
+                annotation.id
+            ).fetch_one(pool)
+                .await
+                .map_err(|e| AppError::DatabaseError(e.to_string()))?;
+
+            updated_comments.push(comment);
+        }
+
+        Ok(updated_comments)
+    }
     pub async fn create(pool: &PgPool, comment_dto: CreateCommentDto) -> Result<Comment, AppError> {
         let comment = sqlx::query_as!(
             Comment,
@@ -252,14 +283,14 @@ impl CommentRepository {
         Ok(result.rows_affected())
     }
 
-    pub fn get_comment_content_and_ids(comments: Vec<Comment>) -> Vec<CommentContentAndId> {
+    pub fn get_comment_content_and_ids(comments: &Vec<Comment>) -> Vec<CommentContentAndId> {
         let mut comments_with_ids: Vec<CommentContentAndId> = Vec::new();
 
         for comment in comments {
             comments_with_ids.push(
                 CommentContentAndId{
-                        id: comment.comment_id,
-                        comment: comment.content
+                        id: comment.comment_id.clone(),
+                        comment: comment.content.clone()
                     })
             }
         comments_with_ids
