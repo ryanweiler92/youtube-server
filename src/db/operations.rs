@@ -125,11 +125,13 @@ impl VideoInfoRepository {
             let comment = sqlx::query_as!(
                 Comment,
                 r#"
-                INSERT INTO comments 
-                (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content, 
+                INSERT INTO comments
+                (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
                  published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                RETURNING *
+                RETURNING id, comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
+                          published_time, like_count, reply_count, comment_level, reply_to, reply_order,
+                          annotations, created_at, updated_at
                 "#,
                 comment_dto.comment_id,
                 comment_dto.channel_id,
@@ -149,7 +151,7 @@ impl VideoInfoRepository {
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| AppError::DatabaseError(e.to_string()))?;
-            
+
             comments.push(comment);
         }
 
@@ -195,11 +197,13 @@ impl CommentRepository {
         let comment = sqlx::query_as!(
             Comment,
             r#"
-            INSERT INTO comments 
-            (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content, 
+            INSERT INTO comments
+            (comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
              published_time, like_count, reply_count, comment_level, reply_to, reply_order, annotations)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            RETURNING *
+            RETURNING id, comment_id, channel_id, video_id, display_name, user_verified, thumbnail, content,
+                      published_time, like_count, reply_count, comment_level, reply_to, reply_order,
+                      annotations, created_at, updated_at
             "#,
             comment_dto.comment_id,
             comment_dto.channel_id,

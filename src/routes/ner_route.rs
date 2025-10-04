@@ -1,6 +1,6 @@
 use axum::{Json, extract::{State, Path}};
 
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 use crate::db::{
     connection::AppState,
     models::{CreateVideoInfoDto, CreateCommentDto},
@@ -8,6 +8,8 @@ use crate::db::{
 };
 use crate::ai::ner::{
     ner_request,
+    build_ranked_annotations,
+    RankedAnnotations,
     NERRequest,
     NERRequestResult,
     AnnotationObject
@@ -24,5 +26,22 @@ pub async fn ner_operation(
     Ok(Json(result))
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GetRankedAnnotationsRequest {
+    video_id: String,
+    #[serde(default)]
+    threshold: Option<u32>
+}
+pub async fn get_ranked_annotations_route(
+    State(app_state): State<AppState>,
+    Json(payload): Json<GetRankedAnnotationsRequest>
+) -> Result<impl IntoResponse, AppError> {
+    let video_id = payload.video_id;
+    let threshold = payload.threshold.unwrap_or(2);
+
+    let ranked_annotations = build_ranked_annotations(&video_id, &threshold, State(app_state)).await?;
+
+    Ok(Json(ranked_annotations))    
+}
 
 

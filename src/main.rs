@@ -39,6 +39,7 @@ async fn main() {
         .route("/videos/{yt_id}/comments", get(routes::video::get_comments_by_video_id))
         .route("/reset-database", post(routes::database::reset_database))
         .route("/ner", post(routes::ner_route::ner_operation))
+        .route("/ner/ranked_annotations", post(routes::ner_route::get_ranked_annotations_route))
         .layer(CorsLayer::permissive())
         .layer(
             TraceLayer::new_for_http()

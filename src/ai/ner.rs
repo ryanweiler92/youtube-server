@@ -40,12 +40,14 @@ pub struct NERRequestResult {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Annotations(HashMap<String, HashSet<String>>);
-
 impl Annotations {
     fn merge(&mut self, other: Annotations) {
         for (label, values) in other.0 {
             self.0.entry(label).or_default().extend(values);
         }
+    }
+    pub fn iter(&self) -> std::collections::hash_map::Iter<String, HashSet<String>> {
+        self.0.iter()
     }
 }
 
@@ -53,6 +55,47 @@ impl Annotations {
 pub struct AnnotationObject {
     pub id: String,
     pub annotations: Annotations
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RankedAnnotations(HashMap<String, HashMap<String, u32>>);
+
+impl RankedAnnotations {
+    fn to_sorted_annotations(&self) -> SortedAnnotations{
+        let mut final_sorted_annotations = SortedAnnotations::new();
+        for (label, annotations) in &self.0 {
+            let mut sorted_annotations: Vec<(String, u32)> =
+                annotations.iter()
+                    .map(|(k, v)| (k.clone(), *v))
+                    .collect();
+            sorted_annotations.sort_by(|a, b| b.1.cmp(&a.1));
+            final_sorted_annotations.0.insert(label.clone(), sorted_annotations);
+        }
+        final_sorted_annotations
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SortedAnnotations(HashMap<String, Vec<(String, u32)>>);
+
+impl SortedAnnotations{
+    pub fn new() -> Self {
+        SortedAnnotations(HashMap::new())
+    }
+
+    pub fn filter_by_threshold(&self, threshold: &u32) -> SortedAnnotations{
+        let mut filtered_annotations = SortedAnnotations::new();
+        for (label, annotations) in &self.0{
+            let filtered_vec: Vec<(String, u32)> = annotations.iter()
+                .filter(|(_, count)| count >= threshold)
+                .cloned()
+                .collect();
+            if !filtered_vec.is_empty() {
+                filtered_annotations.0.insert(label.clone(), filtered_vec);
+            }
+        }
+        filtered_annotations
+    }
 }
 
 pub async fn ner_request(ner_request: NERRequest, State(app_state): State<AppState>) -> Result<Vec<Comment>, AppError> {
@@ -228,5 +271,24 @@ pub fn build_ner_results_as_annotations(ner_results: NERRequestResult) -> Vec<An
         }
     }
     annotation_objects
+}
+
+pub async fn build_ranked_annotations(video_id: &str, threshold: &u32, State(app_state): State<AppState>) -> Result<SortedAnnotations, AppError> {
+    let mut hash_map: HashMap<String, HashMap<String, u32>> = HashMap::default();
+
+    let comments = CommentRepository::get_by_video_id(&app_state.db_pool, video_id).await?;
+    let annotation_objects = build_db_json_as_annotations(&comments);
+
+    for ann_obj in annotation_objects {
+        for (label, annotations) in ann_obj.annotations.iter() {
+            let inner_hash = hash_map.entry(label.clone()).or_insert_with(HashMap::new);
+            for annotation in annotations.iter() {
+                *inner_hash.entry(annotation.clone()).or_insert(0) += 1;
+            }
+        }
+    }
+
+    let ranked_annotation = RankedAnnotations(hash_map).to_sorted_annotations().filter_by_threshold(threshold);
+    Ok(ranked_annotation)
 }
 
